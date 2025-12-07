@@ -1,1 +1,43 @@
 .venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Model checkpoints (grandes demais para git)
+checkpoints/
+*.pth
+*.pt
+*.h5
+*.ckpt
+
+# Dados e imagens
+data/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+
+# Streamlit
+.streamlit/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Repositórios externos
+pytorch-CycleGAN-and-pix2pix/

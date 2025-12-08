@@ -31,14 +31,10 @@ Para usar a aplicação, você precisa ter o modelo pix2pix treinado. Siga estes
 
 #### Opção A: Usando modelo já treinado
 
-1. Certifique-se de ter os checkpoints do modelo treinado em:
+Certifique-se de ter os checkpoints do modelo treinado em:
    ```
    checkpoints/ramularia_colorrec_pix2pix/
    ```
-
-2. O checkpoint deve conter arquivos como:
-   - `latest_net_G.pth` (ou `{epoch}_net_G.pth`)
-   - `train_opt.txt` (ou `opt.txt`)
 
 #### Opção B: Treinar o modelo
 
@@ -83,19 +79,11 @@ A aplicação será aberta automaticamente no navegador em `http://localhost:850
    - Converter a imagem para escala de cinza
    - Reconstruir as cores usando o modelo pix2pix
    - Calcular métricas de anomalia
-   - Classificar a planta como SAUDÁVEL ou DOENTE
 3. **Visualizações**: Veja:
    - Imagem original vs reconstruída
    - Mapa de diferença de cor (CIEDE2000)
    - Mapa de anomalia sobreposto na imagem
-4. **Exportar Resultados**: Baixe as visualizações e relatório em texto
 
-### Configurações Ajustáveis
-
-Na barra lateral, você pode ajustar:
-- **Caminho do Checkpoint**: Localização do modelo treinado
-- **Limiar CIEDE2000**: Threshold para classificação (padrão: 350000)
-- **Limiar HSL Error**: Threshold para análise HSL (padrão: 0.15)
 
 ## 📊 Métricas Utilizadas
 
@@ -129,38 +117,8 @@ O algoritmo funciona em três etapas principais:
    - Cálculo de métricas de diferença de cor
    - Geração de mapas de anomalia
 
-3. **Classificação**:
-   - Comparação das métricas com limiares configuráveis
-   - Diagnóstico combinado usando múltiplas métricas
-   - Geração de confiança no resultado
-
 ## 📝 Referências
 
 - Katafuchi, R., & Tokunaga, T. (2020). Image-based Plant Disease Diagnosis with Unsupervised Anomaly Detection. arXiv preprint arXiv:2011.14306.
 - [Repositório pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)
 
-## ⚠️ Notas Importantes
-
-- O modelo precisa ser treinado em imagens de plantas saudáveis para funcionar corretamente
-- A qualidade do diagnóstico depende da qualidade do modelo treinado
-- Os limiares padrão podem precisar ser ajustados conforme seu dataset específico
-- Para melhor precisão, treine o modelo com imagens do mesmo tipo de planta que deseja diagnosticar
-
-## 🐛 Troubleshooting
-
-### Erro: "Modelo não encontrado"
-- Verifique se o caminho do checkpoint está correto na barra lateral
-- Certifique-se de que os arquivos do checkpoint existem
-- Verifique se o repositório pytorch-CycleGAN-and-pix2pix está disponível
-
-### Erro ao importar módulos
-- Certifique-se de que todas as dependências foram instaladas: `pip install -r requirements.txt`
-- Verifique se o PyTorch está instalado corretamente
-
-### Imagens não processando
-- Verifique se a imagem está em formato RGB
-- Certifique-se de que o tamanho da imagem é razoável (não muito grande)
-
-## 📄 Licença
-
-Este projeto é baseado em trabalhos acadêmicos e código de código aberto. Consulte as licenças dos projetos originais.

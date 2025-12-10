@@ -27,38 +27,57 @@ pip install -r requirements.txt
 
 ### 3. Configure o modelo pix2pix
 
-Para usar a aplicação, você precisa ter o modelo pix2pix treinado. Siga estes passos:
+Para usar a aplicação, você precisa ter o checkpoint (pesos) do gerador Pix2Pix.
 
-#### Opção A: Usando modelo já treinado
+Opções para disponibilizar o checkpoint:
 
-Certifique-se de ter os checkpoints do modelo treinado em:
-   ```
-   checkpoints/ramularia_colorrec_pix2pix/
-   ```
+- Colocar o arquivo na pasta `weights/` com o nome esperado pelo código: `weights/latest_net_G.pth`.
+  - Exemplo (PowerShell):
+    ```powershell
+    Copy-Item .\modelo_final.pth .\weights\latest_net_G.pth
+    ```
+- Ou manter seu arquivo com outro nome e copiar/renomear conforme acima. O código por padrão procura exatamente por `weights/latest_net_G.pth`.
 
-#### Opção B: Treinar o modelo
+Observação importante sobre o formato do arquivo `.pth`:
+- O carregador atual (`model_loader.py`) espera um `state_dict` salvo diretamente com `torch.save(model.state_dict(), path)`.
+- Se seu arquivo for um dicionário contendo metadados (por exemplo `{'state_dict': ..., 'epoch': ...}`), o carregador pode falhar. Neste caso, extraia o `state_dict` ou eu posso adaptar o carregador para aceitar esse formato.
 
-1. Siga o notebook `notebook/Diagnostico_Katafuchi_Tokunaga.ipynb` para treinar o modelo
+Se você prefere treinar o modelo localmente, siga o notebook `notebook/Diagnostico_Katafuchi_Tokunaga.ipynb` ou use o repositório original:
 
-2. Ou clone o repositório pytorch-CycleGAN-and-pix2pix:
-   ```bash
-   git clone https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix.git
-   ```
+```bash
+git clone https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix.git
+# siga as instruções desse repositório para treinamento
+```
 
-3. Treine o modelo seguindo as instruções do notebook
+### Treinar ou usar pré-treinado (recomendação)
+
+Você tem duas opções principais para obter um gerador que funcione com a aplicação:
+
+- Usar pesos já treinados (recomendado para começar):
+   - Mais rápido e imediato — basta colocar o arquivo `.pth` em `weights/latest_net_G.pth` e rodar a aplicação.
+   - Ideal para avaliação, demonstração ou quando você não tem GPU/tempo para treinar.
+
+- Treinar ou ajustar (fine-tune) seu próprio modelo:
+   - Necessário quando você quer adaptar o modelo a um domínio diferente (outras espécies, iluminação, câmeras).
+   - Requer dataset apropriado e, preferencialmente, GPU. Use o notebook em `notebook/` ou o repositório `pytorch-CycleGAN-and-pix2pix` para treinar.
+
+Recomendação prática: comece usando um checkpoint pré-treinado para validar o fluxo de trabalho e as métricas. Se os resultados não forem satisfatórios para o seu domínio, capture um pequeno conjunto de imagens representativas e treine/ajuste o modelo.
 
 ### 4. Estrutura do projeto
 
 ```
 diagnostico-plantas/
 ├── app.py                 # Aplicação Streamlit principal
-├── utils.py               # Funções utilitárias de processamento
-├── model_utils.py         # Funções para carregar e usar o modelo
-├── requirements.txt       # Dependências Python
-├── notebook/              # Notebook com treinamento e análise
+├── diagnosis.py          # Regras de diagnóstico por limiar
+├── inference.py          # Classe de inferência e factory
+├── model_loader.py       # Arquitetura do gerador e carregador de pesos
+├── metrics.py            # Cálculo de métricas CIEDE2000, HSL, etc
+├── requirements.txt      # Dependências Python
+├── notebook/             # Notebook com treinamento e análise
 │   └── Diagnostico_Katafuchi_Tokunaga.ipynb
-├── checkpoints/           # Diretório para checkpoints do modelo
-│   └── ramularia_colorrec_pix2pix/
+├── weights/              # Local sugerido para checkpoints (.pth)
+│   ├── latest_net_G.pth  # nome esperado pelo app (coloque seu .pth aqui)
+│   └── *.txt             # logs e opções geradas durante o treino
 └── README.md
 ```
 

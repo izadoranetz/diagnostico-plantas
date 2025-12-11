@@ -1,16 +1,19 @@
 """
 Aplicação Streamlit para diagnóstico de doenças em plantas
 Baseado no artigo de Katafuchi e Tokunaga (2020)
+Refatorado para seguir o notebook diagnostico_plantas.ipynb
 """
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
 from PIL import Image
 from pathlib import Path
 
 # Importar módulos customizados
 from inference import create_inference_engine
 from metrics import calculate_all_metrics, leaf_mask_from_rgb, de2000_map
+from gradcam import GradCAM
 
 # Configuração da página
 st.set_page_config(
@@ -48,25 +51,38 @@ st.markdown("""
 @st.cache_resource
 def load_model():
     """Carrega o modelo uma única vez"""
-    weights_path = Path(__file__).parent / "weights" / "latest_net_G.pth"
+    # Tentar modelo_final.pth primeiro, depois latest_net_G.pth
+    weights_dir = Path(__file__).parent / "weights"
+    
+    if (weights_dir / "modelo_final.pth").exists():
+        weights_path = weights_dir / "modelo_final.pth"
+    elif (weights_dir / "latest_net_G.pth").exists():
+        weights_path = weights_dir / "latest_net_G.pth"
+    else:
+        raise FileNotFoundError("Nenhum arquivo de pesos encontrado em weights/")
+    
     return create_inference_engine(str(weights_path), device='cpu')
 
 
-def create_visualization(original, gray, reconstructed, de_map, mask):
+def create_visualization(original, gray, reconstructed, de_map, mask, gradcam_heatmap):
     """
-    Cria visualização com 5 imagens lado a lado
+    Cria visualização com 5 imagens lado a lado incluindo Grad-CAM
     
     Args:
         original: imagem original RGB
-        gray: imagem em escala de cinza
+        gray: imagem em escala de cinza (H, W)
         reconstructed: imagem reconstruída
         de_map: mapa de diferenças CIEDE2000
         mask: máscara da folha
+        gradcam_heatmap: mapa de calor Grad-CAM (H, W)
     """
     fig, axes = plt.subplots(1, 5, figsize=(20, 4))
     
+    # Converter grayscale para RGB para visualização
+    gray_rgb = np.stack([gray, gray, gray], axis=2)
+    
     # Entrada (escala de cinza)
-    axes[0].imshow(gray)
+    axes[0].imshow(gray_rgb)
     axes[0].set_title("Entrada (Escala de Cinza)", fontsize=12)
     axes[0].axis('off')
     
@@ -90,10 +106,22 @@ def create_visualization(original, gray, reconstructed, de_map, mask):
     axes[3].axis('off')
     plt.colorbar(im, ax=axes[3], fraction=0.046, pad=0.04)
     
-    # Grad-CAM style overlay (mapa de erro sobre imagem original)
-    axes[4].imshow(original)
-    axes[4].imshow(de_normalized, cmap='jet', alpha=0.5)
-    axes[4].set_title("Grad-CAM Style\n(Erro Sobreposto)", fontsize=12)
+    # Grad-CAM overlay
+    h, w = original.shape[:2]
+    gradcam_resized = cv2.resize(gradcam_heatmap, (w, h))
+    
+    # Aplicar colormap
+    gradcam_colored = cv2.applyColorMap(
+        np.uint8(255 * gradcam_resized), 
+        cv2.COLORMAP_JET
+    )
+    gradcam_colored = cv2.cvtColor(gradcam_colored, cv2.COLOR_BGR2RGB)
+    
+    # Sobrepor na imagem original
+    overlay = cv2.addWeighted(original, 0.5, gradcam_colored, 0.5, 0)
+    
+    axes[4].imshow(overlay)
+    axes[4].set_title("Grad-CAM\n(Atenção do Modelo)", fontsize=12)
     axes[4].axis('off')
     
     plt.tight_layout()
@@ -156,8 +184,8 @@ def main():
                     # Carregar modelo
                     model = load_model()
                     
-                    # Realizar inferência
-                    original, gray, reconstructed = model.reconstruct(input_image)
+                    # Realizar inferência (agora retorna tensor também)
+                    original, gray, reconstructed, input_tensor = model.reconstruct(input_image)
                     
                     # Gerar máscara
                     mask = leaf_mask_from_rgb(original, white_thr=240)
@@ -168,12 +196,17 @@ def main():
                     # Calcular métricas
                     metrics = calculate_all_metrics(original, reconstructed, mask)
                     
+                    # Gerar Grad-CAM
+                    with st.spinner("Gerando visualização Grad-CAM..."):
+                        gradcam = GradCAM(model.model)
+                        gradcam_heatmap = gradcam.generate_heatmap(input_tensor)
+                    
                     # Exibir resultados
                     st.success("✅ Análise concluída!")
                     
                     # Visualizações
                     st.header("📊 Visualizações")
-                    fig = create_visualization(original, gray, reconstructed, de_map, mask)
+                    fig = create_visualization(original, gray, reconstructed, de_map, mask, gradcam_heatmap)
                     st.pyplot(fig)
                     
                     # Métricas detalhadas

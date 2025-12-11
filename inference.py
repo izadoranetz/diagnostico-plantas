@@ -24,17 +24,23 @@ class Pix2PixInference:
         """
         self.device = device
         self.image_size = image_size
-        self.model = load_pix2pix_generator(weights_path, device)
+        # Modelo aceita 1 canal (grayscale) e produz 3 canais (RGB)
+        self.model = load_pix2pix_generator(
+            weights_path, 
+            device, 
+            in_channels=1, 
+            out_channels=3
+        )
         
     def preprocess_image(self, pil_img: Image.Image) -> Tuple[torch.Tensor, np.ndarray, np.ndarray]:
         """
-        Preprocessa a imagem para inferência
+        Preprocessa a imagem para inferência (matching notebook preprocessing)
         
         Args:
             pil_img: imagem PIL em RGB
             
         Returns:
-            tensor para o modelo, imagem original RGB, imagem em escala de cinza
+            tensor para o modelo (grayscale 1-channel), imagem original RGB, imagem em escala de cinza
         """
         # Redimensionar e converter para RGB
         img_rgb = pil_img.convert("RGB").resize(
@@ -42,24 +48,24 @@ class Pix2PixInference:
             Image.BICUBIC
         )
         
-        # Converter para escala de cinza (entrada do modelo)
-        img_gray = img_rgb.convert("L").convert("RGB")
+        # Converter para escala de cinza (1 canal para o modelo)
+        img_gray = img_rgb.convert("L")
         
         # Converter para numpy
         img_rgb_np = np.asarray(img_rgb).astype(np.uint8)
         img_gray_np = np.asarray(img_gray).astype(np.uint8)
         
-        # Preparar tensor para o modelo
+        # Preparar tensor para o modelo (1 canal)
         # Normalizar para [-1, 1] como no treinamento
         tensor = np.asarray(img_gray).astype(np.float32) / 255.0
-        tensor = torch.from_numpy(tensor).permute(2, 0, 1).unsqueeze(0)
+        tensor = torch.from_numpy(tensor).unsqueeze(0).unsqueeze(0)  # [1, 1, H, W]
         tensor = (tensor * 2.0) - 1.0
         tensor = tensor.to(self.device)
         
         return tensor, img_rgb_np, img_gray_np
     
     @torch.no_grad()
-    def reconstruct(self, pil_img: Image.Image) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def reconstruct(self, pil_img: Image.Image) -> Tuple[np.ndarray, np.ndarray, np.ndarray, torch.Tensor]:
         """
         Reconstrói a imagem colorida a partir da entrada em escala de cinza
         
@@ -67,7 +73,8 @@ class Pix2PixInference:
             pil_img: imagem PIL em RGB
             
         Returns:
-            tupla com (imagem original, imagem cinza, imagem reconstruída) em RGB uint8
+            tupla com (imagem original, imagem cinza, imagem reconstruída, tensor de entrada) 
+            primeiros 3 em RGB uint8, último é tensor para Grad-CAM
         """
         # Preprocessar
         tensor, img_rgb_np, img_gray_np = self.preprocess_image(pil_img)
@@ -83,7 +90,7 @@ class Pix2PixInference:
         fake_np = fake_tensor[0].cpu().permute(1, 2, 0).numpy()
         fake_np = (fake_np * 255).astype(np.uint8)
         
-        return img_rgb_np, img_gray_np, fake_np
+        return img_rgb_np, img_gray_np, fake_np, tensor
 
 
 def create_inference_engine(weights_path: str = None, device: str = 'cpu') -> Pix2PixInference:

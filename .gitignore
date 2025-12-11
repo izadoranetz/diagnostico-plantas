@@ -41,3 +41,7 @@ Thumbs.db
 
 # Repositórios externos
 pytorch-CycleGAN-and-pix2pix/
+
+# Notebooks (disponível no Google Colab)
+notebook/
+*.ipynb

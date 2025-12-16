@@ -139,7 +139,7 @@ Erro ponderado no espaço de cor HSV:
 - **15% Value (V)**: Escurecimento (necrose)
 
 ### 5. Grad-CAM
-Visualização das regiões onde o modelo concentrou sua atenção durante a reconstrução. Áreas vermelhas indicam alta ativação do modelo.
+Visualização das regiões onde o modelo concentrou sua atenção durante a reconstrução. Usa mapa de calor (heatmap), as áreas vermelhas indicam alta ativação do modelo.
 
 ## 🧪 Como Funciona
 
